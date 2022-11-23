@@ -3,8 +3,13 @@
 </div>
 <div id="counter" align="center">
     <img src="https://komarev.com/ghpvc/?username=frozenwelsor&style=flat-square&color=blue" alt=""/>
-<h1>About me🔎</h1>
+<h1n>About me🔎</h1>
 
 - 👋 Hi, I’m @FrozenWelsor
 - 👀 I’m interested in fullstack-developing
 - 🌱 I’m currently learning JS
+---
+
+### :hammer_and_wrench: Languages and Tools :
+
+
