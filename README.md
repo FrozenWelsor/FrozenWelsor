@@ -8,6 +8,7 @@
 - 👋 Hi, I'm Fullstack-developer, FrozenWelsor
 - 👀 I’m interested in web-developing
 - 🌱 I’m currently learning JS
+- 🌟 Contact: MrWels#2626
 ---
 
 ### :hammer_and_wrench: Languages and Tools :
