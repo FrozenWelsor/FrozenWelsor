@@ -10,5 +10,7 @@
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="assets/activity-dark.svg">
-  <img src="assets/activity-light.svg" width="100%" alt="Public GitHub activity in the last 30 days and languages in public repositories">
+  <img src="assets/activity-light.svg" width="100%" alt="Public and private GitHub activity in the last 30 days and languages in owned repositories">
 </picture>
+
+[All repositories](https://github.com/FrozenWelsor?tab=repositories)

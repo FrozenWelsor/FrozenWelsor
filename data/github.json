@@ -1,6 +1,7 @@
 {
   "version": 1,
   "username": "FrozenWelsor",
+  "visibility": "all",
   "updatedOn": "2026-11-02",
   "window": {
     "from": "2026-10-04",
@@ -8,13 +9,33 @@
     "days": 30
   },
   "activity": {
-    "commits": 3,
+    "commits": 4,
     "pullRequests": 0
   },
   "languages": [
     {
+      "name": "TypeScript",
+      "bytes": 1117971
+    },
+    {
+      "name": "HTML",
+      "bytes": 46191
+    },
+    {
+      "name": "CSS",
+      "bytes": 13537
+    },
+    {
+      "name": "Go",
+      "bytes": 10040
+    },
+    {
       "name": "Python",
       "bytes": 2078
+    },
+    {
+      "name": "JavaScript",
+      "bytes": 817
     }
   ],
   "avatarMimeType": "image/jpeg"
