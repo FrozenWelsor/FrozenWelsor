@@ -1,0 +1,34 @@
+{
+  "username": "FrozenWelsor",
+  "displayName": "Wels",
+  "about": "Focused on Go backend: REST APIs, PostgreSQL, Redis & Docker. Working toward my first internship.",
+  "animations": true,
+  "includePrivate": true,
+  "stack": [
+    { "name": "Go", "icon": "go" },
+    { "name": "Python", "icon": "python" },
+    { "name": "TypeScript", "icon": "typescript" },
+    { "name": "Git", "icon": "git" }
+  ],
+  "learning": [
+    { "name": "Docker", "icon": "docker" },
+    { "name": "PostgreSQL", "icon": "postgresql" },
+    { "name": "Redis", "icon": "redis" }
+  ],
+  "themes": {
+    "dark": {
+      "background": "#151A21",
+      "foreground": "#EDF2F7",
+      "muted": "#A7B4C4",
+      "accent": "#8DCBEE",
+      "line": "#344252"
+    },
+    "light": {
+      "background": "#F6F8FA",
+      "foreground": "#1F2933",
+      "muted": "#526173",
+      "accent": "#216584",
+      "line": "#CAD5DF"
+    }
+  }
+}
