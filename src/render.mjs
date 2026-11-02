@@ -187,8 +187,12 @@ function activity(config, data, theme) {
     body += reveal(tile, 230 + index * 140, 'pop-in');
   });
   const total = data.languages.reduce((sum, language) => sum + language.bytes, 0);
-  const languages = [...data.languages].sort((a, b) => b.bytes - a.bytes || a.name.localeCompare(b.name, 'en')).slice(0, 3);
-  const colors = [theme.accent, mix(theme.accent, theme.foreground, .25), mix(theme.accent, theme.background, .35)];
+  const languages = [...data.languages].sort((a, b) => b.bytes - a.bytes || a.name.localeCompare(b.name, 'en'));
+  const tones = parseInt(theme.background.slice(1, 3), 16) > 127
+    ? ['#347DAD', '#C86742', '#8561B4', '#2A927F', '#AC8A32', '#AD5D86']
+    : ['#70B7F0', '#F39A76', '#B69AF5', '#67CEB7', '#E4C46C', '#E786B5'];
+  const languageTone = { TypeScript: 0, HTML: 1, CSS: 2, Go: 3, Python: 4, JavaScript: 5 };
+  const colors = languages.map((language, index) => tones[Object.hasOwn(languageTone, language.name) ? languageTone[language.name] : index % tones.length]);
   let offset = 0;
   if (languages.length) {
     body += reveal(text(36, 218, `Languages across ${includePrivate ? 'all' : 'public'} repositories`, { size: 30, fill: theme.muted }), 350);
@@ -204,30 +208,44 @@ function activity(config, data, theme) {
   if (!languages.length) {
     body += reveal(text(36, 218, includePrivate ? 'No language data yet.' : 'No public language data yet.', { size: 30, fill: theme.muted }), 350);
   }
-  let x = 36;
-  let baseline = 262;
-  let rowHeight = 48;
+  let baseline = 296;
+  let rowWidth = 0;
+  let rowContent = '';
+  let rowIndex = 0;
+  const flushRow = () => {
+    if (!rowContent) return;
+    body += reveal(`<text class="language-row" x="36" y="${baseline}" fill="${theme.foreground}" font-family="${SANS}" font-size="30">${rowContent}</text>`, 650 + rowIndex++ * 80);
+    baseline += 40;
+    rowWidth = 0;
+    rowContent = '';
+  };
   for (const [index, language] of languages.entries()) {
     const percent = language.bytes / total * 100;
     const label = percent < 0.1 ? '<0.1%' : `${Number(percent.toFixed(1))}%`;
     const labelWidth = textWidth(label, 30);
     const lines = wrapText(language.name, 600 - labelWidth, 30);
     const nameWidth = Math.max(...lines.map(line => textWidth(line, 30)));
-    const width = Math.ceil(nameWidth + labelWidth + 62);
-    const height = Math.max(48, lines.length * 36 + 12);
-    if (x + width > 814) { x = 36; baseline += rowHeight + 12; rowHeight = 48; }
-    let legend = `<circle cx="${x + 6}" cy="${baseline + 24}" r="5" fill="${colors[index]}"/>`;
-    lines.forEach((line, row) => {
-      const percentage = row === lines.length - 1 ? `<tspan dx="10" fill="${theme.muted}">${escapeXml(label)}</tspan>` : '';
-      legend += `<text x="${x + 20}" y="${baseline + 34 + row * 36}" fill="${theme.foreground}" font-family="${SANS}" font-size="30">${escapeXml(line)}${percentage}</text>`;
-    });
-    body += reveal(legend, 650 + index * 80);
-    x += width + 12;
-    rowHeight = Math.max(rowHeight, height);
+    const width = Math.ceil(nameWidth + labelWidth + 28);
+    const percentage = `<tspan dx="8" fill="${theme.muted}">${escapeXml(label)}</tspan>`;
+    const dot = `<tspan fill="${colors[index]}">•</tspan>`;
+    if (lines.length > 1) {
+      flushRow();
+      const legend = lines.map((line, row) => `<text x="${row ? 56 : 36}" y="${baseline + row * 40}" fill="${theme.foreground}" font-family="${SANS}" font-size="30">${row ? '' : dot + '<tspan dx="8">'}${escapeXml(line)}${row === lines.length - 1 ? percentage : ''}${row ? '' : '</tspan>'}</text>`).join('');
+      body += reveal(legend, 650 + rowIndex++ * 80);
+      baseline += lines.length * 40;
+      continue;
+    }
+    if (rowContent && rowWidth + 24 + width > 778) flushRow();
+    // Расчёт ширины нужен только для переноса. Внутри строки SVG сам
+    // размещает подписи по фактической ширине шрифта с постоянным зазором.
+    const gap = rowContent ? ' dx="24"' : '';
+    rowContent += `<tspan${gap}>${dot}<tspan dx="8">${escapeXml(language.name)}${percentage}</tspan></tspan>`;
+    rowWidth += (rowWidth ? 24 : 0) + width;
   }
+  flushRow();
   const from = new Date(`${data.window.from}T00:00:00Z`).toLocaleDateString('en', { month: 'short', day: 'numeric', timeZone: 'UTC' });
   const to = new Date(`${data.window.to}T00:00:00Z`).toLocaleDateString('en', { month: 'short', day: 'numeric', timeZone: 'UTC' });
-  const footerY = languages.length ? baseline + rowHeight + 28 : 274;
+  const footerY = languages.length ? baseline + 2 : 274;
   body += text(36, footerY, `${from} – ${to}`, { size: 30, fill: theme.muted });
   body += text(814, footerY, `Updated ${data.updatedOn}`, { size: 30, fill: theme.muted, anchor: 'end' });
   const visibility = includePrivate ? 'public and private' : 'public';
