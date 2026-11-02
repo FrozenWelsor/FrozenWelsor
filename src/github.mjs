@@ -73,10 +73,75 @@ export function createGitHubClient({ token = '', fetchImpl = fetch, now = () => 
     }
     if (!response.ok) {
       const limit = response.status === 403 || response.status === 429 ? ' Возможно, достигнут лимит запросов.' : '';
-      throw new Error(`GitHub API: HTTP ${response.status}.${limit}`);
+      const permissions = [403, 404].includes(response.status) && /^\/repos\/.+\/(branches|commits)$/.test(path)
+        ? ' Для приватной истории проверьте Contents: Read-only у PROFILE_STATS_TOKEN.' : '';
+      throw new Error(`GitHub API: HTTP ${response.status}.${limit}${permissions}`);
     }
     try { return await response.json(); }
     catch { throw new Error('GitHub API вернул некорректный JSON.'); }
+  }
+
+  async function* pages(path, params) {
+    for (let page = 1; page <= 101; page++) {
+      const batch = await api(path, { ...params, per_page: '100', page: String(page) });
+      if (!Array.isArray(batch)) throw new Error('GitHub вернул некорректную страницу истории.');
+      if (page === 101 && batch.length) break;
+      yield batch;
+      if (batch.length < 100) return;
+    }
+    throw new Error('Слишком много страниц истории. Неполная статистика не сохранена.');
+  }
+
+  async function countCommits(repositories, username, window) {
+    const hashes = new Set();
+    const visitedHeads = new Set();
+    const isHash = value => typeof value === 'string' && /^[a-f\d]{40}(?:[a-f\d]{24})?$/i.test(value);
+    const from = Date.parse(`${window.from}T00:00:00Z`);
+    const until = Date.parse(`${window.to}T00:00:00Z`) + 86_400_000;
+    const remember = (entry, publicOnly = false) => {
+      if (!isHash(entry?.sha)) throw new Error('GitHub вернул некорректный SHA коммита.');
+      if (publicOnly && entry.repository?.private !== false) throw new Error('GitHub вернул непубличный результат публичного поиска.');
+      if (entry.author?.login?.toLowerCase() !== username.toLowerCase()) return;
+      const date = typeof entry.commit?.author?.date === 'string' ? Date.parse(entry.commit.author.date) : NaN;
+      if (!Number.isFinite(date)) throw new Error('GitHub вернул некорректную дату истории коммитов.');
+      if (date >= from && date < until) hashes.add(entry.sha.toLowerCase());
+    };
+    // Фиксируем SHA вершины: переименование или движение ветки не меняет обход.
+    // Не ограничиваем API по since/until: после rebase дата коммиттера может
+    // отличаться от авторской. Точное окно author.date проверяется локально.
+    for (const repo of repositories) {
+      const path = `/repos/${username}/${repo.name}`;
+      for await (const branches of pages(`${path}/branches`)) {
+        for (const branch of branches) {
+          const head = branch?.commit?.sha;
+          if (!isHash(head)) throw new Error('GitHub вернул некорректную вершину ветки.');
+          const key = head.toLowerCase();
+          if (visitedHeads.has(key)) continue;
+          visitedHeads.add(key);
+          for await (const commits of pages(`${path}/commits`, { sha: head, author: username })) {
+            for (const commit of commits) remember(commit);
+          }
+        }
+      }
+    }
+    // Сохраняем прежний учёт публичного вклада в чужие репозитории.
+    // Их основные ветки доступны через поиск; SHA объединяются с личной историей.
+    let expectedTotal;
+    for (let page = 1; ; page++) {
+      const result = await api('/search/commits', {
+        q: `author:${username} author-date:${window.from}..${window.to} is:public -user:${username}`,
+        per_page: '100', page: String(page), sort: 'author-date', order: 'desc'
+      });
+      const total = safeCount(result);
+      if (total > 1000) throw new Error('Публичный вклад в чужие репозитории превышает лимит поиска 1000. Неполная статистика не сохранена.');
+      expectedTotal ??= total;
+      if (total !== expectedTotal || !Array.isArray(result.items) || result.items.length !== Math.min(100, total - (page - 1) * 100)) {
+        throw new Error('GitHub вернул неполные страницы публичного поиска. Предыдущие данные сохранены.');
+      }
+      for (const commit of result.items) remember(commit, true);
+      if (page * 100 >= total) break;
+    }
+    return hashes.size;
   }
 
   async function avatar(urlString) {
@@ -129,20 +194,19 @@ export function createGitHubClient({ token = '', fetchImpl = fetch, now = () => 
       }
       const languageResults = [];
       for (const repo of repositories) {
+        if (typeof repo.name !== 'string' || !/^[\w.-]+$/.test(repo.name)) throw new Error('Некорректное имя репозитория.');
         if (repo.fork || repo.archived || repo.name.toLowerCase() === username.toLowerCase()) continue;
-        if (!/^[\w.-]+$/.test(repo.name)) throw new Error('Некорректное имя репозитория.');
         languageResults.push(await api(`/repos/${username}/${repo.name}/languages`));
       }
       const range = `${window.from}..${window.to}`;
-      // Публичный вклад учитываем в любых репозиториях, приватный — только в личных.
-      // Две непересекающиеся выборки не удваивают коммиты и PR.
+      // Для PR сохраняем непересекающиеся публичную и личную приватную выборки.
       const count = async (path, query) => {
         let total = safeCount(await api(path, { q: `${query} is:public`, per_page: '1' }));
         if (includePrivate) total += safeCount(await api(path, { q: `${query} user:${username} is:private`, per_page: '1' }));
         if (!Number.isSafeInteger(total)) throw new Error('Слишком большой счётчик активности.');
         return total;
       };
-      const commits = await count('/search/commits', `author:${username} author-date:${range}`);
+      const commits = await countCommits(repositories, username, window);
       const pullRequests = await count('/search/issues', `is:pr author:${username} created:${range}`);
       const image = await avatar(user.avatar_url);
       return {
