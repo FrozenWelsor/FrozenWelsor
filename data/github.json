@@ -2,32 +2,32 @@
   "version": 1,
   "username": "FrozenWelsor",
   "visibility": "all",
-  "updatedOn": "2026-11-12",
+  "updatedOn": "2026-11-13",
   "window": {
-    "from": "2026-10-14",
-    "to": "2026-11-12",
+    "from": "2026-10-15",
+    "to": "2026-11-13",
     "days": 30
   },
   "activity": {
-    "commits": 49,
+    "commits": 61,
     "pullRequests": 0
   },
   "languages": [
     {
       "name": "TypeScript",
-      "bytes": 248155
-    },
-    {
-      "name": "HTML",
-      "bytes": 46191
+      "bytes": 452655
     },
     {
       "name": "CSS",
-      "bytes": 16400
+      "bytes": 50849
+    },
+    {
+      "name": "HTML",
+      "bytes": 48273
     },
     {
       "name": "Go",
-      "bytes": 10040
+      "bytes": 24731
     },
     {
       "name": "Python",
@@ -36,6 +36,14 @@
     {
       "name": "JavaScript",
       "bytes": 817
+    },
+    {
+      "name": "Shell",
+      "bytes": 792
+    },
+    {
+      "name": "Dockerfile",
+      "bytes": 121
     }
   ],
   "avatarMimeType": "image/jpeg"
